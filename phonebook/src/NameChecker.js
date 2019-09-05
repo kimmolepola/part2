@@ -1,6 +1,8 @@
+/* exported person */
+
 const CheckIfNewPerson = (persons, newName) => {
-    for (const person of persons) {
-        if (person.name == newName) {
+    for (const person of persons) { // eslint-disable-line no-unused-vars
+        if (person.name.toLowerCase() === newName.toLowerCase()) {
             return false
         }
     }
