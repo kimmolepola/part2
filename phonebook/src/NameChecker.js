@@ -1,12 +1,12 @@
 /* exported person */
 
-const CheckIfNewPerson = (persons, newName) => {
+const CheckIfExists = (persons, newName) => {
     for (const person of persons) { // eslint-disable-line no-unused-vars
         if (person.name.toLowerCase() === newName.toLowerCase()) {
-            return false
+            return person.id
         }
     }
-    return true
+    return -1
 }
 
-export default CheckIfNewPerson
+export default CheckIfExists

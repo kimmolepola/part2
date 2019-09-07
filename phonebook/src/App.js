@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import CheckIfNewPerson from './NameChecker'
+import getId from './NameChecker'
 import Contacts from './Contacts'
-import axios from 'axios'
+import personService from './services/persons'
+import indexFinder from './IdIndexFinder'
+
 
 const App = () => {
   const [persons, setPersons] = useState([])
@@ -9,11 +11,12 @@ const App = () => {
   const [newNumber, setNewNumber] = useState('')
   const [newFilter, setNewFilter] = useState('')
 
-  useEffect(() => {axios
-    .get('http://localhost:3001/persons')
-    .then(response => {
-      setPersons(response.data)})
-    }, [])
+  useEffect(() => {
+    personService.getAll()
+      .then(initialPersons => {
+        setPersons(initialPersons)
+      })
+  }, [])
 
   const handleNameChange = (event) => {
     setNewName(event.target.value)
@@ -29,11 +32,46 @@ const App = () => {
 
   const addPerson = (event) => {
     event.preventDefault()
-    if (CheckIfNewPerson(persons, newName)) {
-      setPersons(persons.concat({ name: newName, number: newNumber }))
+    const id = getId(persons, newName)
+    if (id === -1) {
+      personService.create({ name: newName, number: newNumber })
+        .then(returnedPerson => {
+          setPersons(persons.concat(returnedPerson))
+        })
     } else {
-      window.alert(`${newName} is already added to phonebook`)
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+        updatePerson(id, newName, newNumber)
+      }
     }
+  }
+
+  const deletePerson = (id, name) => {
+    if (window.confirm(`Delete ${name} ?`)) {
+      personService.remove(id)
+        .then(response => {
+          if (response.status === 200) {
+            const newPersons = []
+            for (const person of persons) {// eslint-disable-line no-unused-vars
+              if (person.id !== id) {
+                newPersons.push(person)
+              }
+            }
+            setPersons(newPersons)
+          }
+        })
+    }
+  }
+
+  const updatePerson = (id, newName, newNumber) => {
+    const newObject = { name: newName, number: newNumber }
+    personService.update(id, newObject)
+      .then(response => {
+        if (response.status === 200) {
+          const newPersons = [...persons]
+          newPersons[indexFinder(newPersons, id)] = response.data
+          setPersons(newPersons)
+        }
+      })
   }
 
   return (
@@ -55,7 +93,7 @@ const App = () => {
         </div>
       </form>
       <h2>Numbers</h2>
-      <Contacts persons={persons} filter={newFilter} />
+      <Contacts persons={persons} filter={newFilter} deletePerson={deletePerson} />
     </div>
   )
 }
