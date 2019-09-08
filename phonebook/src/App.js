@@ -3,13 +3,15 @@ import getId from './NameChecker'
 import Contacts from './Contacts'
 import personService from './services/persons'
 import indexFinder from './IdIndexFinder'
-
+import './App.css'
+import Notification from './Notification'
 
 const App = () => {
   const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [newFilter, setNewFilter] = useState('')
+  const [notification, setNotification] = useState({ message: '', className: '' })
 
   useEffect(() => {
     personService.getAll()
@@ -32,11 +34,13 @@ const App = () => {
 
   const addPerson = (event) => {
     event.preventDefault()
+    personService.getAll().then(pers => setPersons(pers))
     const id = getId(persons, newName)
     if (id === -1) {
       personService.create({ name: newName, number: newNumber })
         .then(returnedPerson => {
           setPersons(persons.concat(returnedPerson))
+          Notification.Notify(`Added ${returnedPerson.name}`, "success", setNotification)
         })
     } else {
       if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
@@ -50,13 +54,7 @@ const App = () => {
       personService.remove(id)
         .then(response => {
           if (response.status === 200) {
-            const newPersons = []
-            for (const person of persons) {// eslint-disable-line no-unused-vars
-              if (person.id !== id) {
-                newPersons.push(person)
-              }
-            }
-            setPersons(newPersons)
+            setPersons(persons.filter(person => person.id !== id))
           }
         })
     }
@@ -70,13 +68,19 @@ const App = () => {
           const newPersons = [...persons]
           newPersons[indexFinder(newPersons, id)] = response.data
           setPersons(newPersons)
+          Notification.Notify(`Updated ${response.data.name}`, "success", setNotification)
         }
+      })
+      .catch(error => {
+        setPersons(persons.filter(person => person.id !== id))
+        Notification.Notify(`Information of ${newName} has already been removed from server`, "error", setNotification)
       })
   }
 
   return (
     <div>
       <h2>Phonebook</h2>
+      <div><Notification.Notification notification={notification} /></div>
       <div>
         filter shown with: <input value={newFilter} onChange={handleFilterChange} />
       </div>
